@@ -25,6 +25,7 @@ import numpy as np
 
 np.random.seed(1337)
 input_shape = (1, 28, 28) # image shape
+nb_class = 10 # number of class
 
 ## load and pre-process data
 
@@ -139,7 +140,7 @@ def copy_weights(teacher_model, student_model, layer_names):
 
 ## experiments setup
 
-def make_teacher_model(train_data, validation_data):
+def make_teacher_model(train_data, validation_data, nb_epoch=3):
     """Train a simple CNN as teacher model.
     """ 
     model = Sequential()
@@ -149,14 +150,14 @@ def make_teacher_model(train_data, validation_data):
     model.add(MaxPooling2D(name = "pool2"))
     model.add(Flatten(name = "flatten"))
     model.add(Dense(128, activation = "relu", name = "fc1"))
-    model.add(Dense(10, activation = "softmax", name = "fc2"))
+    model.add(Dense(nb_class, activation = "softmax", name = "fc2"))
     model.compile(loss = "categorical_crossentropy", optimizer = "sgd", metrics = ["accuracy"])
     
     train_x, train_y = train_data
-    history = model.fit(train_x, train_y, nb_epoch=3, validation_data = validation_data)
+    history = model.fit(train_x, train_y, nb_epoch=nb_epoch, validation_data = validation_data)
     return model, history
 
-def make_wider_student_model(teacher_model, train_data, validation_data, init):
+def make_wider_student_model(teacher_model, train_data, validation_data, init, nb_epoch=3):
     """Train a wider student model based on teacher_model, with either 'random-pad' (baseline)
     or 'net2wider'
     """
@@ -172,7 +173,7 @@ def make_wider_student_model(teacher_model, train_data, validation_data, init):
     model.add(Flatten(name = "flatten"))
     ## a wider fc1 compared to teacher model
     model.add(Dense(new_fc1_width, activation = "relu", name = "fc1"))
-    model.add(Dense(10, activation = "softmax", name = "fc2"))
+    model.add(Dense(nb_class, activation = "softmax", name = "fc2"))
     
     ## The weights for other layers need to be copied from teacher_model 
     ## to student_model, except for widened layers and their immediate downstreams, 
@@ -194,10 +195,10 @@ def make_wider_student_model(teacher_model, train_data, validation_data, init):
     model.compile(loss = "categorical_crossentropy", optimizer = "sgd", metrics = ["accuracy"])
     
     train_x, train_y = train_data
-    history = model.fit(train_x, train_y, nb_epoch=3, validation_data = validation_data)
+    history = model.fit(train_x, train_y, nb_epoch=nb_epoch, validation_data = validation_data)
     return model, history
 
-def make_deeper_student_model(teacher_model, train_data, validation_data, init):
+def make_deeper_student_model(teacher_model, train_data, validation_data, init, nb_epoch=3):
     """Train a deeper student model based on teacher_model, with either 'random-init' (baseline)
     or 'net2deeper'
     """
@@ -225,7 +226,7 @@ def make_deeper_student_model(teacher_model, train_data, validation_data, init):
         model.add(Dense(128, activation = "relu", name = "fc1-deeper"))
     else:
         raise ValueError("Unsupported weight initializer: %s" % init)
-    model.add(Dense(10, activation="softmax", name="fc2"))
+    model.add(Dense(nb_class, activation="softmax", name="fc2"))
     
     ## copy weights for other layers
     copy_weights(teacher_model, model, layer_names=["conv1", "conv2", "fc1", "fc2"])
@@ -233,7 +234,7 @@ def make_deeper_student_model(teacher_model, train_data, validation_data, init):
     model.compile(loss = "categorical_crossentropy", optimizer = "sgd", metrics = ["accuracy"])
     
     train_x, train_y = train_data
-    history = model.fit(train_x, train_y, nb_epoch=3, validation_data = validation_data)
+    history = model.fit(train_x, train_y, nb_epoch=nb_epoch, validation_data = validation_data)
     return model, history
 
 def net2wider_experiment():
